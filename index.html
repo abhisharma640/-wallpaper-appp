@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wallpaper App</title>
+    <style>
+        :root {
+            --primary-color: #2c3e50;
+            --secondary-color: #34495e;
+            --accent-color: #3498db;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: var(--primary-color);
+        }
+
+        /* Header Styles */
+        .header {
+            background-color: var(--secondary-color);
+            padding: 1rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .logo {
+            color: white;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .search-box {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: none;
+            width: 300px;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-top: 80px;
+            padding: 20px;
+        }
+
+        /* Wallpaper Grid */
+        .wallpaper-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .wallpaper-item {
+            position: relative;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .wallpaper-item:hover {
+            transform: scale(1.03);
+        }
+
+        .wallpaper-img {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* Overlay Styles */
+        .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            padding: 20px;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .wallpaper-item:hover .overlay {
+            opacity: 1;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+
+        .download-btn {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .preview-btn {
+            background-color: #27ae60;
+            color: white;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            z-index: 2000;
+        }
+
+        .modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            margin: 2% auto;
+        }
+
+        .modal-img {
+            width: 100%;
+            height: auto;
+            border-radius: 10px;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .search-box {
+                width: 200px;
+            }
+
+            .wallpaper-grid {
+                grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nav {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <div class="logo">WallpaperHub</div>
+            <input type="text" class="search-box" placeholder="Search wallpapers..." id="searchInput">
+        </nav>
+    </header>
+
+    <main class="main-content">
+        <div class="wallpaper-grid" id="wallpaperGrid"></div>
+    </main>
+
+    <div class="modal" id="previewModal">
+        <div class="modal-content">
+            <img class="modal-img" id="modalImg" src="" alt="Preview">
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = 'TJp3U4yaOLA8B9MzpkAfQCo7tmRO1syc6gEAK64aPkvwqARf7FIimSdd';
+        let currentPage = 1;
+        let currentQuery = '';
+
+        async function fetchWallpapers(query = 'nature', page = 1) {
+            const url = query ?
+                `https://api.pexels.com/v1/search?query=${query}&page=${page}&per_page=15` :
+                `https://api.pexels.com/v1/curated?page=${page}&per_page=15`;
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        Authorization: API_KEY
+                    }
+                });
+                const data = await response.json();
+                displayWallpapers(data.photos);
+            } catch (error) {
+                console.error('Error fetching wallpapers:', error);
+            }
+        }
+
+        function displayWallpapers(photos) {
+            const grid = document.getElementById('wallpaperGrid');
+            
+            photos.forEach(photo => {
+                const wallpaperItem = document.createElement('div');
+                wallpaperItem.className = 'wallpaper-item';
+                wallpaperItem.innerHTML = `
+                    <img src="${photo.src.large}" class="wallpaper-img" alt="${photo.photographer}">
+                    <div class="overlay">
+                        <button class="btn download-btn" onclick="downloadWallpaper('${photo.src.original}')">Download</button>
+                        <button class="btn preview-btn" onclick="previewWallpaper('${photo.src.large2x}')">Preview</button>
+                    </div>
+                `;
+                grid.appendChild(wallpaperItem);
+            });
+        }
+
+        function downloadWallpaper(url) {
+            fetch(url)
+                .then(response => response.blob())
+                .then(blob => {
+                    const link = document.createElement('a');
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `wallpaper-${Date.now()}.jpg`;
+                    link.click();
+                });
+        }
+
+        function previewWallpaper(url) {
+            const modal = document.getElementById('previewModal');
+            const modalImg = document.getElementById('modalImg');
+            modal.style.display = 'block';
+            modalImg.src = url;
+
+            modal.onclick = () => {
+                modal.style.display = 'none';
+            }
+        }
+
+        // Search Handler
+        const searchInput = document.getElementById('searchInput');
+        let searchTimeout;
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            currentQuery = e.target.value;
+            searchTimeout = setTimeout(() => {
+                document.getElementById('wallpaperGrid').innerHTML = '';
+                fetchWallpapers(currentQuery);
+            }, 500);
+        });
+
+        // Infinite Scroll
+        window.addEventListener('scroll', () => {
+            const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+            
+            if (scrollTop + clientHeight >= scrollHeight - 10) {
+                currentPage++;
+                fetchWallpapers(currentQuery, currentPage);
+            }
+        });
+
+        // Initial load
+        fetchWallpapers();
+    </script>
+</body>
+</html>
